@@ -25,8 +25,11 @@ int main()
     bmi160 IMU = init_bmi160(0, I2C_SDA, I2C_SCL, EN_P);
    
 
-  
-    
+   while(!is_acc_ready(&IMU)){
+        printf("Not ready!\n");
+   }
+
+
    
 }
 
@@ -91,6 +94,10 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     printf("%04x\n", dev_ID);
 
 
+
+    printf("Device initialised");
+
+    return IMU_dev;
 }
 
 //Updates a value in a register
@@ -137,3 +144,21 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
     }
 }
 
+
+//Returns whether the acceleration data is ready or not
+bool is_acc_ready(bmi160 *dev){
+
+    const uint8_t ACC_FLAG = 0x10;
+
+    uint8_t rdy_buf;
+
+    read_register(dev, STATUS_REG, &rdy_buf);
+
+    printf("%x - ", rdy_buf);
+
+
+    //Mask with 7th bit, shift to end
+    return (rdy_buf & ACC_FLAG) >> 7;
+
+
+}

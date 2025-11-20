@@ -16,6 +16,8 @@
 
 #define CHIP_ID_REG 0x00
 
+#define STATUS_REG 0x1B
+
 //Device struct
 typedef struct{
 
@@ -51,9 +53,13 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
 2) Sensortime data (24bit counter incremembeter every 39us)
       2a) worht noting after 10 mins and 54 seconds the timer wraps
       2b) Dont need total time though just time diff
-
-
 */
+
+//Returns whether the acceleration data is ready or not
+bool is_acc_ready(bmi160 *dev);
+
+//Returns whether the gyroscope data is ready or not
+bool is_gyr_ready(bmi160 *dev);
 
 
 #endif
