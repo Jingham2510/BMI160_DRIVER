@@ -55,10 +55,10 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
       2b) Dont need total time though just time diff
 */
 
-//Returns whether the acceleration data is ready or not
+//Returns whether the acceleration data is ready
 bool is_acc_ready(bmi160 *dev);
 
-//Returns whether the gyroscope data is ready or not
+//Returns whether the gyroscope data is ready
 bool is_gyr_ready(bmi160 *dev);
 
 

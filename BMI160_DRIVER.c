@@ -145,10 +145,10 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
 }
 
 
-//Returns whether the acceleration data is ready or not
+//Returns whether the acceleration data flag is set
 bool is_acc_ready(bmi160 *dev){
 
-    const uint8_t ACC_FLAG = 0x10;
+    const uint8_t ACC_MASK = 0x80;
 
     uint8_t rdy_buf;
 
@@ -158,7 +158,20 @@ bool is_acc_ready(bmi160 *dev){
 
 
     //Mask with 7th bit, shift to end
-    return (rdy_buf & ACC_FLAG) >> 7;
+    return (rdy_buf & ACC_MASK) >> 7;
 
+
+}
+
+//Returns whether the gyroscope data flag is set
+bool is_gyr_ready(bmi160 *dev){
+
+    const uint8_t GYR_MASK = 0x40;
+
+    uint8_t rdy_buf;
+
+    read_register(dev, STATUS_REG, &rdy_buf);
+
+    return (rdy_buf & GYR_MASK) >> 6;
 
 }
