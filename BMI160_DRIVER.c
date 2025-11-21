@@ -15,6 +15,7 @@
 
 
 void wait_for_go();
+bool is_cmd_flushed(bmi160 *dev);
 
 int main()
 {
@@ -93,6 +94,36 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
 
     printf("%04x\n", dev_ID);
 
+    //BY DEFAULT ACCEL/GYRO ARE OFF ON BOOT
+
+    //Turn on the accelerometer 
+    write_register(&IMU_dev, CMD_REG, ACCEL_ON);
+
+    //Wait until the register has been flushed
+    int timeout = 0;
+    while(!is_cmd_flushed(&IMU_dev)){
+        sleep_us(5000);
+        timeout++;
+        if (timeout > 50){
+            printf("CMD TIMEOUT\n");
+            break;
+        }
+    }
+
+
+    //Turn on the gyroscope
+     write_register(&IMU_dev, CMD_REG, GYR_ON);
+
+    //Wait until the register has been flushed
+    timeout = 0;
+    while(!is_cmd_flushed(&IMU_dev)){
+        sleep_us(5000);
+        timeout++;
+        if (timeout > 50){
+            printf("CMD TIMEOUT\n");
+            break;
+        }
+    }
 
 
     printf("Device initialised");
@@ -174,4 +205,15 @@ bool is_gyr_ready(bmi160 *dev){
 
     return (rdy_buf & GYR_MASK) >> 6;
 
+}
+
+//Returns whether the cmd register has been flushed
+bool is_cmd_flushed(bmi160 *dev){
+
+    //Get the command register value
+    uint8_t cmd_val;
+    read_register(dev, CMD_REG, &cmd_val);
+    
+    //If the value is higher that 0, cmd not flushed
+    return (cmd_val == 0);
 }

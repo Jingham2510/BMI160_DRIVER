@@ -18,6 +18,15 @@
 
 #define STATUS_REG 0x1B
 
+#define CMD_REG 0x7E
+//Accelerometer commands
+#define ACCEL_ON 0x11
+#define ACCEL_OFF 0x10
+//Gyroscope commands
+#define GYR_ON 0x15
+#define GYR_OFF 0x14
+
+
 //Device struct
 typedef struct{
 
@@ -36,9 +45,12 @@ typedef struct{
 //Setup I2C for the device
 bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin);
 
+//Run a device self test
+int self_test(bmi160 *dev);
+
 
 /*
-
+Write a value to a register
 */
 int write_register(bmi160 *dev, uint8_t reg, uint8_t data);
 
@@ -60,6 +72,15 @@ bool is_acc_ready(bmi160 *dev);
 
 //Returns whether the gyroscope data is ready
 bool is_gyr_ready(bmi160 *dev);
+
+
+//Get the timestamp of the device
+
+//Get the full XYZ gyro data
+
+//Get the full XYZ accel data
+
+
 
 
 #endif
