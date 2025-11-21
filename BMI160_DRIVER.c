@@ -88,11 +88,7 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     IMU_dev.I2C_HW = HW_block;
     IMU_dev.SDA_PIN = SDA_pin;
     IMU_dev.SCL_PIN = SCL_pin;
-    IMU_dev.EN_PIN = EN_pin;
-
-
-    
-    
+    IMU_dev.EN_PIN = EN_pin;    
     
     //Verify connection to the device
     uint8_t dev_ID;
@@ -126,7 +122,13 @@ int boot_def_accel(bmi160 *dev, bool load_cfg){
     if(load_cfg){
     //Set the accelerometers default parameters (100 hz sampling)
     write_register(dev, ACC_CFG, ACC_DEF_CFG);
+    sleep_ms(1);
+    write_register(dev, ACC_RNG, ACC_DEF_RNG);
+    sleep_ms(1);
     }
+    
+
+
 
     printf("%04x", get_err(dev));
 
@@ -146,7 +148,7 @@ int boot_def_accel(bmi160 *dev, bool load_cfg){
         }
     }
 
-    sleep_ms(1);
+    sleep_ms(4);
 
 }
 
@@ -156,6 +158,9 @@ int boot_def_gyr(bmi160 *dev, bool load_cfg){
     if (load_cfg){
         //Write the default config to the gyr reg
         write_register(dev, GYR_CFG, GYR_DEF_CFG);
+        sleep_ms(1);
+        write_register(dev, GYR_RNG, GYR_DEF_RNG);
+        sleep_ms(1);
     }
 
 
@@ -174,6 +179,11 @@ int boot_def_gyr(bmi160 *dev, bool load_cfg){
             break;
         }
     }
+
+
+
+    sleep_ms(80);
+
 }
 
 //Return the error reg value
@@ -219,6 +229,7 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
         succ = i2c_read_blocking(dev->I2C_HW, BMI160_ADDR, buf, 1, false);
 
     }else{
+        printf("Failed to write REG to read\n");
         return succ;
     }    
 

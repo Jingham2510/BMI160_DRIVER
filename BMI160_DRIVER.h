@@ -8,7 +8,7 @@
 
 
 
-#define DEFAULT_BAUD 100000
+#define DEFAULT_BAUD 400000
 
 
 #define BMI160_ADDR 0x68
@@ -22,9 +22,13 @@
 
 #define ACC_CFG 0x40
 #define ACC_DEF_CFG 0x28
+#define ACC_RNG 0x41
+#define ACC_DEF_RNG 0x03
 
 #define GYR_CFG 0x42
 #define GYR_DEF_CFG 0x28
+#define GYR_RNG 0x43
+#define GYR_DEF_RNG 0x00
 
 #define CMD_REG 0x7E
 
