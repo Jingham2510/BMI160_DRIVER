@@ -16,9 +16,21 @@
 
 #define CHIP_ID_REG 0x00
 
+#define ERR_REG 0x02
 #define STATUS_REG 0x1B
 
+
+#define ACC_CFG 0x40
+#define ACC_DEF_CFG 0x28
+
+#define GYR_CFG 0x42
+#define GYR_DEF_CFG 0x28
+
 #define CMD_REG 0x7E
+
+#define SOFT_RESET 0xB6
+#define SOFT_RESET_WAIT_MS 1
+
 //Accelerometer commands
 #define ACCEL_ON 0x11
 #define ACCEL_OFF 0x10
@@ -41,6 +53,13 @@ typedef struct{
 
 }bmi160;
 
+//data struct - can represent gyro or acc data
+typedef struct{
+    uint16_t x;
+    uint16_t y;
+    uint16_t z;
+}bmi160_data;
+
 
 //Setup I2C for the device
 bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin);
@@ -48,6 +67,14 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin);
 //Run a device self test
 int self_test(bmi160 *dev);
 
+//Set the config of the accelerometer to the default then turn it on
+int boot_def_accel(bmi160 *dev, bool load_cfg);
+
+//Set the config of the gyroscope to the default then turn it on
+int boot_def_gyr(bmi160 *dev, bool load_cfg);
+
+//Return the error reg val
+uint8_t get_err(bmi160 *dev);
 
 /*
 Write a value to a register

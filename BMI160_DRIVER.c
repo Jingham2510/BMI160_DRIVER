@@ -28,6 +28,9 @@ int main()
 
    while(!is_acc_ready(&IMU)){
         printf("Not ready!\n");
+        sleep_us(5000);
+        //DEBUG - we know is broken atm
+        return -1;
    }
 
 
@@ -88,35 +91,82 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     IMU_dev.EN_PIN = EN_pin;
 
 
+    
+    
+    
     //Verify connection to the device
     uint8_t dev_ID;
     read_register(&IMU_dev, CHIP_ID_REG, &dev_ID);
+    sleep_ms(1);
 
-    printf("%04x\n", dev_ID);
+    //Soft reset device
+    write_register(&IMU_dev, CMD_REG, SOFT_RESET);
+    //Sleep for approx time it takes device to reset
+    sleep_ms(SOFT_RESET_WAIT_MS);
+
+
+
 
     //BY DEFAULT ACCEL/GYRO ARE OFF ON BOOT
+    boot_def_accel(&IMU_dev, true);
 
-    //Turn on the accelerometer 
-    write_register(&IMU_dev, CMD_REG, ACCEL_ON);
+
+    boot_def_gyr(&IMU_dev, true);
+   
+
+
+
+    printf("Device initialised\n");
+
+    return IMU_dev;
+}
+
+int boot_def_accel(bmi160 *dev, bool load_cfg){
+
+    if(load_cfg){
+    //Set the accelerometers default parameters (100 hz sampling)
+    write_register(dev, ACC_CFG, ACC_DEF_CFG);
+    }
+
+    printf("%04x", get_err(dev));
+
+     //Turn on the accelerometer 
+    write_register(dev, CMD_REG, ACCEL_ON);
+
+    sleep_ms(1);
 
     //Wait until the register has been flushed
     int timeout = 0;
-    while(!is_cmd_flushed(&IMU_dev)){
+    while(!is_cmd_flushed(dev)){
         sleep_us(5000);
         timeout++;
         if (timeout > 50){
             printf("CMD TIMEOUT\n");
             break;
         }
+    }
+
+    sleep_ms(1);
+
+}
+
+int boot_def_gyr(bmi160 *dev, bool load_cfg){
+    
+
+    if (load_cfg){
+        //Write the default config to the gyr reg
+        write_register(dev, GYR_CFG, GYR_DEF_CFG);
     }
 
 
     //Turn on the gyroscope
-     write_register(&IMU_dev, CMD_REG, GYR_ON);
+    write_register(dev, CMD_REG, GYR_ON);
+    sleep_ms(1);
+
 
     //Wait until the register has been flushed
-    timeout = 0;
-    while(!is_cmd_flushed(&IMU_dev)){
+    int timeout = 0;
+    while(!is_cmd_flushed(dev)){
         sleep_us(5000);
         timeout++;
         if (timeout > 50){
@@ -124,11 +174,17 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
             break;
         }
     }
+}
+
+//Return the error reg value
+uint8_t get_err(bmi160 *dev){
+
+    uint8_t err_buf;
+    read_register(dev, ERR_REG, &err_buf);
+
+    return err_buf;
 
 
-    printf("Device initialised");
-
-    return IMU_dev;
 }
 
 //Updates a value in a register
