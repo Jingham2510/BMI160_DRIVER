@@ -10,8 +10,8 @@
 
 #define DEFAULT_BAUD 400000
 
-
-#define BMI160_ADDR 0x68
+//Validated with test sweep
+#define BMI160_ADDR 0x69
 
 
 #define CHIP_ID_REG 0x00

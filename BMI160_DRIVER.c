@@ -16,6 +16,7 @@
 
 void wait_for_go();
 bool is_cmd_flushed(bmi160 *dev);
+void sweep_i2c(bmi160 *dev);
 
 int main()
 {
@@ -24,6 +25,8 @@ int main()
     wait_for_go();
 
     bmi160 IMU = init_bmi160(0, I2C_SDA, I2C_SCL, EN_P);
+
+
    
 
    while(!is_acc_ready(&IMU)){
@@ -32,6 +35,8 @@ int main()
         //DEBUG - we know is broken atm
         return -1;
    }
+
+   
 
 
    
@@ -90,6 +95,9 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     IMU_dev.SCL_PIN = SCL_pin;
     IMU_dev.EN_PIN = EN_pin;    
     
+    
+
+
     //Verify connection to the device
     uint8_t dev_ID;
     read_register(&IMU_dev, CHIP_ID_REG, &dev_ID);
@@ -229,7 +237,7 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
         succ = i2c_read_blocking(dev->I2C_HW, BMI160_ADDR, buf, 1, false);
 
     }else{
-        printf("Failed to write REG to read\n");
+        printf("Failed to write REG to read - ERR CODE: %d\n", succ);
         return succ;
     }    
 
@@ -283,4 +291,31 @@ bool is_cmd_flushed(bmi160 *dev){
     
     //If the value is higher that 0, cmd not flushed
     return (cmd_val == 0);
+}
+
+
+//Sweep through every I2C address to try and find the value
+void sweep_i2c(bmi160 *dev){
+
+    uint8_t test_addr = 0x00;
+
+    int succ;
+
+    //Write every address until we get an ack
+    for(test_addr; test_addr < 256; test_addr++){
+
+         //Write addr then index then data to the VL53l0 device
+        succ = i2c_write_blocking(dev->I2C_HW, test_addr, 0x00, 1, false);
+
+        //Check whether the byte was written
+        if (succ == 1){
+            printf("VALID ADDR FOUND - %04x", test_addr);
+            break;
+        }else{
+            printf("INVALID ADDR - %04x\n", test_addr);
+        }
+
+
+    }
+
 }
