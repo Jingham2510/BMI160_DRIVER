@@ -36,10 +36,17 @@ int main()
         return -1;
    }
 
-   
 
+   get_timestamp(&IMU);
+   get_timestamp(&IMU);
 
-   
+   sleep_us(1000);
+   get_timestamp(&IMU);
+
+   //CRASHING HERE!
+
+   printf("PROG FINISHED!\n");
+
 }
 
 
@@ -108,22 +115,79 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     //Sleep for approx time it takes device to reset
     sleep_ms(SOFT_RESET_WAIT_MS);
 
-
+    //Self test the gyr and acc
+    if(self_test(&IMU_dev) != 1){
+        printf("Self test failed!\n");
+    }else{
+        printf("Self test passed\n");
+    }
 
 
     //BY DEFAULT ACCEL/GYRO ARE OFF ON BOOT
     boot_def_accel(&IMU_dev, true);
-
-
+    
     boot_def_gyr(&IMU_dev, true);
-   
-
 
 
     printf("Device initialised\n");
 
     return IMU_dev;
 }
+
+int self_test(bmi160 *dev){
+
+    //Self test the gyroscope
+    write_register(dev, SELF_TEST_REG, 0x10);
+
+    //Delay 50ms to let the test run (datasheet spec)
+    sleep_ms(50);
+
+    //Check the status register to see if the test is complete
+    uint8_t status_buf;
+    int timeout = 0;
+    read_register(dev, STATUS_REG, &status_buf);
+
+    while (!(status_buf & 1)){
+        timeout++;
+
+        if(timeout > 50){
+            printf("GYR self-test timeout!\n");
+            return -1;
+        }
+        read_register(dev, STATUS_REG, &status_buf);
+    }
+
+    //Set the accel config for self test
+    write_register(dev, ACC_CFG, 0x2C);
+    
+    //Self test the accelerometer
+    write_register(dev, SELF_TEST_REG, 0x05);
+    //Delay to let the test run
+    sleep_ms(50);
+
+    //Check the status register to see if test is complete
+    timeout = 0;
+    read_register(dev, STATUS_REG, &status_buf);
+
+    while (!(status_buf & 0x01)){
+        timeout++;
+
+        if(timeout > 50){
+            printf("ACC self-test timeout!");
+            return -1;
+        }
+        read_register(dev, STATUS_REG, &status_buf);
+    }
+
+
+    //Set the defualt cfg of the accelerometer
+    boot_def_accel(dev, true);
+
+
+    return 1;
+}
+
+
 
 int boot_def_accel(bmi160 *dev, bool load_cfg){
 
@@ -135,10 +199,6 @@ int boot_def_accel(bmi160 *dev, bool load_cfg){
     sleep_ms(1);
     }
     
-
-
-
-    printf("%04x", get_err(dev));
 
      //Turn on the accelerometer 
     write_register(dev, CMD_REG, ACCEL_ON);
@@ -205,6 +265,28 @@ uint8_t get_err(bmi160 *dev){
 
 }
 
+/*
+Get the time of the sensor
+Note: The timer updates every 34us 
+*/
+uint8_t get_timestamp(bmi160 *dev){
+
+    //Read the timestamp register
+    uint8_t tstamp_buf[3];
+    read_3_byte_register(dev, TIMESTAMP_REG, tstamp_buf);
+
+
+    //DEBUG - check timestamp if it needs reordering
+    for (int i = 0; i <3; i++){
+        printf("%02x", i, tstamp_buf[i]);
+    }
+
+    printf("\n");
+
+
+
+}
+
 //Updates a value in a register
 int write_register(bmi160 *dev, uint8_t reg, uint8_t data){
 
@@ -248,6 +330,27 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
         printf("%04x -READ ERR - %d\n", reg, succ);
         return succ;
     }
+}
+
+int read_3_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
+
+    //Indicate to the device which register we would like to read
+    int succ = i2c_write_blocking(dev->I2C_HW, BMI160_ADDR, &reg, 1, true);
+
+    if(succ == 1){
+
+        succ = i2c_read_blocking(dev->I2C_HW, BMI160_ADDR, buf, 3, false);
+
+        if (succ != 3){
+            printf("Failed to read 3 bytes - %d", succ);
+        }
+
+    }else{
+        printf("FAILED TO W/R\n");
+    }
+
+
+
 }
 
 
@@ -315,7 +418,7 @@ void sweep_i2c(bmi160 *dev){
             printf("INVALID ADDR - %04x\n", test_addr);
         }
 
-
     }
 
 }
+

@@ -17,7 +17,9 @@
 #define CHIP_ID_REG 0x00
 
 #define ERR_REG 0x02
+#define TIMESTAMP_REG 0x18
 #define STATUS_REG 0x1B
+#define SELF_TEST_REG 0x6D
 
 
 #define ACC_CFG 0x40
@@ -45,7 +47,6 @@
 
 //Device struct
 typedef struct{
-
     //I2C hardware
     i2c_inst_t *I2C_HW;
 
@@ -90,13 +91,10 @@ Read a single byte from the BMI160
 */
 int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
 
-/*Data to read:
-
-1)All 19 registers contianing the magnetomer, gyro, accel data
-2) Sensortime data (24bit counter incremembeter every 39us)
-      2a) worht noting after 10 mins and 54 seconds the timer wraps
-      2b) Dont need total time though just time diff
+/*
+read 3 bytes of data (mainly for timestamp)
 */
+int read_3_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
 
 //Returns whether the acceleration data is ready
 bool is_acc_ready(bmi160 *dev);
@@ -105,12 +103,13 @@ bool is_acc_ready(bmi160 *dev);
 bool is_gyr_ready(bmi160 *dev);
 
 
-//Get the timestamp of the device
+//Get the time of the sensor
+uint8_t get_timestamp(bmi160 *dev);
 
 //Get the full XYZ gyro data
-
+bmi160_data get_gyr_data(bmi160 *dev);
 //Get the full XYZ accel data
-
+bmi160_data get_acc_data(bmi160 *dev);
 
 
 
