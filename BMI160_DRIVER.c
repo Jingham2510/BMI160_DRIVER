@@ -39,11 +39,11 @@ int main()
    printf("%02x - %02x - %02x \n", tstamp_buf[0], tstamp_buf[1], tstamp_buf[2]);
 
 
-   bmi160_data gyr_data;  
+   bmi160_data acc_data;  
    
    while(true){
-    get_gyr_data(&IMU, &gyr_data);
-    printf("X - %04x, Y - %04x, Z - %04x \n", gyr_data.x, gyr_data.y, gyr_data.z);
+    get_gyr_data(&IMU, &acc_data);
+    printf("X - %04x, Y - %04x, Z - %04x \n", acc_data.x, acc_data.y, acc_data.z);
    }
    
    
@@ -318,6 +318,47 @@ int get_gyr_data(bmi160 *dev, bmi160_data *gyr_data){
 
     read_2_byte_register(dev, GYR_Z_REG, tmp);
     gyr_data->z = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    return 1;
+
+}
+
+//Return the xyz gyroscope data
+int get_acc_data(bmi160 *dev, bmi160_data *acc_data){
+
+    //Check if the gyroscope data is ready
+    int acc_timeout = 0;
+
+
+    while(!is_gyr_ready(dev)){
+        //Timeout if not
+        acc_timeout++;
+        
+        if(acc_timeout > 50){
+            printf("ACC READ TIMEOUT\n");
+            return -1;
+        }
+
+        sleep_us(500);
+    }
+
+    //Initialise the data packet struct    
+    acc_data->x = 0;
+    acc_data->y = 0;
+    acc_data->z = 0;
+    
+    uint8_t tmp[2] = {0, 0};
+    uint16_t tmp_val;
+
+    //Read the relevant registers and bitshift 
+    read_2_byte_register(dev, ACC_X_REG, tmp);
+    acc_data->x = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    read_2_byte_register(dev, ACC_Y_REG, tmp);
+    acc_data->y = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    read_2_byte_register(dev, ACC_Z_REG, tmp);
+    acc_data->z = (uint16_t)(tmp[0] << 8 | tmp[1]);
 
     return 1;
 

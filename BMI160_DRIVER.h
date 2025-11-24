@@ -36,6 +36,10 @@
 #define GYR_Y_REG 0x0F
 #define GYR_Z_REG 0x10
 
+#define ACC_X_REG 0x12
+#define ACC_Y_REG 0x13
+#define ACC_Z_REG 0x16
+
 #define CMD_REG 0x7E
 
 #define SOFT_RESET 0xB6
