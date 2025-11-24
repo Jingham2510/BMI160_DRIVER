@@ -39,6 +39,18 @@ int main()
    printf("%02x - %02x - %02x \n", tstamp_buf[0], tstamp_buf[1], tstamp_buf[2]);
 
 
+   bmi160_data gyr_data;  
+   
+   while(true){
+    get_gyr_data(&IMU, &gyr_data);
+    printf("X - %04x, Y - %04x, Z - %04x \n", gyr_data.x, gyr_data.y, gyr_data.z);
+   }
+   
+   
+
+
+
+
    printf("PROG FINISHED!\n");
 
    sleep_ms(1000);
@@ -144,11 +156,8 @@ int self_test(bmi160 *dev){
     int timeout = 0;
     read_register(dev, STATUS_REG, &status_buf);
 
-    while (!(status_buf & 1)){
+    while (!((status_buf >> 0) & 1)){
         timeout++;
-
-        printf("STAT_REG : %02x\n", status_buf);
-
         if(timeout > 50){
             printf("GYR self-test timeout!\n");
             return -1;
@@ -251,8 +260,6 @@ uint8_t get_err(bmi160 *dev){
     read_register(dev, ERR_REG, &err_buf);
 
     return err_buf;
-
-
 }
 
 /*
@@ -272,10 +279,51 @@ uint8_t get_timestamp_raw(bmi160 *dev, uint8_t *tstamp_buf){
     tstamp_buf[0] = tmp[2];
     
     return 1;
+}
 
 
+//Return the xyz gyroscope data
+int get_gyr_data(bmi160 *dev, bmi160_data *gyr_data){
+
+    //Check if the gyroscope data is ready
+    int gyr_timeout = 0;
+
+
+    while(!is_gyr_ready(dev)){
+        //Timeout if not
+        gyr_timeout++;
+        
+        if(gyr_timeout > 50){
+            printf("GYR READ TIMEOUT\n");
+            return -1;
+        }
+
+        sleep_us(500);
+    }
+
+    //Initialise the data packet struct    
+    gyr_data->x = 0;
+    gyr_data->y = 0;
+    gyr_data->z = 0;
+    
+    uint8_t tmp[2] = {0, 0};
+    uint16_t tmp_val;
+
+    //Read the relevant registers and bitshift 
+    read_2_byte_register(dev, GYR_X_REG, tmp);
+    gyr_data->x = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    read_2_byte_register(dev, GYR_Y_REG, tmp);
+    gyr_data->y = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    read_2_byte_register(dev, GYR_Z_REG, tmp);
+    gyr_data->z = (uint16_t)(tmp[0] << 8 | tmp[1]);
+
+    return 1;
 
 }
+
+
 
 
 void reboot(bmi160 *dev){
@@ -330,6 +378,26 @@ int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
     }
 }
 
+//Read 2 bytes of data from a register (sequentially)
+int read_2_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
+
+    //Indicate to the device which register we would like to read
+    int succ = i2c_write_blocking(dev->I2C_HW, BMI160_ADDR, &reg, 1, true);
+
+    if(succ == 1){
+
+        succ = i2c_read_blocking(dev->I2C_HW, BMI160_ADDR, buf, 2, false);
+
+        if (succ != 2){
+            printf("Failed to read 3 bytes - %d", succ);
+        }
+
+    }else{
+        printf("FAILED TO W/R\n");
+    }
+}
+
+//Read 3 bytes of data from a register (sequentially)
 int read_3_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
 
     //Indicate to the device which register we would like to read
@@ -346,9 +414,6 @@ int read_3_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf){
     }else{
         printf("FAILED TO W/R\n");
     }
-
-
-
 }
 
 

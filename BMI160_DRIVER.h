@@ -32,6 +32,10 @@
 #define GYR_RNG 0x43
 #define GYR_DEF_RNG 0x00
 
+#define GYR_X_REG 0x0C
+#define GYR_Y_REG 0x0F
+#define GYR_Z_REG 0x10
+
 #define CMD_REG 0x7E
 
 #define SOFT_RESET 0xB6
@@ -92,6 +96,11 @@ Read a single byte from the BMI160
 int read_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
 
 /*
+Read 2 bytes from the BMI160
+*/
+int read_2_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
+
+/*
 read 3 bytes of data (mainly for timestamp)
 */
 int read_3_byte_register(bmi160 *dev, uint8_t reg, uint8_t *buf);
@@ -107,9 +116,9 @@ bool is_gyr_ready(bmi160 *dev);
 uint8_t get_timestamp_raw(bmi160 *dev, uint8_t *tstamp_buf);
 
 //Get the full XYZ gyro data
-bmi160_data get_gyr_data(bmi160 *dev);
+int get_gyr_data(bmi160 *dev, bmi160_data *gyr_data);
 //Get the full XYZ accel data
-bmi160_data get_acc_data(bmi160 *dev);
+int get_acc_data(bmi160 *dev, bmi160_data *acc_data);
 
 
 
