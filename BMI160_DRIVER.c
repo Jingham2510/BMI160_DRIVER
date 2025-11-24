@@ -17,6 +17,7 @@
 void wait_for_go();
 bool is_cmd_flushed(bmi160 *dev);
 void sweep_i2c(bmi160 *dev);
+void reboot(bmi160 *dev);
 
 int main()
 {
@@ -26,26 +27,21 @@ int main()
 
     bmi160 IMU = init_bmi160(0, I2C_SDA, I2C_SCL, EN_P);
 
-
    
 
-   while(!is_acc_ready(&IMU)){
-        printf("Not ready!\n");
-        sleep_us(5000);
-        //DEBUG - we know is broken atm
-        return -1;
-   }
+    uint8_t tstamp_buf[3] = {0, 0, 0};
 
+    //Check to see if the timestamp changes
+   get_timestamp_raw(&IMU, tstamp_buf);
+   printf("%02x - %02x - %02x \n", tstamp_buf[0], tstamp_buf[1], tstamp_buf[2]);
+   sleep_ms(1000);
+   get_timestamp_raw(&IMU, tstamp_buf);
+   printf("%02x - %02x - %02x \n", tstamp_buf[0], tstamp_buf[1], tstamp_buf[2]);
 
-   get_timestamp(&IMU);
-   get_timestamp(&IMU);
-
-   sleep_us(1000);
-   get_timestamp(&IMU);
-
-   //CRASHING HERE!
 
    printf("PROG FINISHED!\n");
+
+   sleep_ms(1000);
 
 }
 
@@ -111,9 +107,7 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     sleep_ms(1);
 
     //Soft reset device
-    write_register(&IMU_dev, CMD_REG, SOFT_RESET);
-    //Sleep for approx time it takes device to reset
-    sleep_ms(SOFT_RESET_WAIT_MS);
+    reboot(&IMU_dev);
 
     //Self test the gyr and acc
     if(self_test(&IMU_dev) != 1){
@@ -121,6 +115,9 @@ bmi160 init_bmi160(int I2C_HW, int SDA_pin, int SCL_pin, int EN_pin){
     }else{
         printf("Self test passed\n");
     }
+
+    //Soft reset device
+    reboot(&IMU_dev);
 
 
     //BY DEFAULT ACCEL/GYRO ARE OFF ON BOOT
@@ -150,6 +147,8 @@ int self_test(bmi160 *dev){
     while (!(status_buf & 1)){
         timeout++;
 
+        printf("STAT_REG : %02x\n", status_buf);
+
         if(timeout > 50){
             printf("GYR self-test timeout!\n");
             return -1;
@@ -161,24 +160,15 @@ int self_test(bmi160 *dev){
     write_register(dev, ACC_CFG, 0x2C);
     
     //Self test the accelerometer
-    write_register(dev, SELF_TEST_REG, 0x05);
+    write_register(dev, SELF_TEST_REG, 0x09);
     //Delay to let the test run
     sleep_ms(50);
 
-    //Check the status register to see if test is complete
-    timeout = 0;
-    read_register(dev, STATUS_REG, &status_buf);
+    //Self test the acclerometer with the opposite polarity
+    write_register(dev, SELF_TEST_REG, 0x0D);
 
-    while (!(status_buf & 0x01)){
-        timeout++;
-
-        if(timeout > 50){
-            printf("ACC self-test timeout!");
-            return -1;
-        }
-        read_register(dev, STATUS_REG, &status_buf);
-    }
-
+    //Delay to let the test run
+    sleep_ms(50);
 
     //Set the defualt cfg of the accelerometer
     boot_def_accel(dev, true);
@@ -269,22 +259,30 @@ uint8_t get_err(bmi160 *dev){
 Get the time of the sensor
 Note: The timer updates every 34us 
 */
-uint8_t get_timestamp(bmi160 *dev){
+uint8_t get_timestamp_raw(bmi160 *dev, uint8_t *tstamp_buf){
 
+    uint8_t tmp[3] = {0, 0, 0};
     //Read the timestamp register
-    uint8_t tstamp_buf[3];
-    read_3_byte_register(dev, TIMESTAMP_REG, tstamp_buf);
+    read_3_byte_register(dev, TIMESTAMP_REG, tmp);
 
 
-    //DEBUG - check timestamp if it needs reordering
-    for (int i = 0; i <3; i++){
-        printf("%02x", i, tstamp_buf[i]);
-    }
+    //Reverse the order of the bytes
+    tstamp_buf[2] = tmp[0];
+    tstamp_buf[1] = tmp[1];
+    tstamp_buf[0] = tmp[2];
+    
+    return 1;
 
-    printf("\n");
 
 
+}
 
+
+void reboot(bmi160 *dev){
+    //Soft reset device
+    write_register(dev, CMD_REG, SOFT_RESET);
+    //Sleep for approx time it takes device to reset
+    sleep_ms(SOFT_RESET_WAIT_MS);
 }
 
 //Updates a value in a register
@@ -363,9 +361,6 @@ bool is_acc_ready(bmi160 *dev){
 
     read_register(dev, STATUS_REG, &rdy_buf);
 
-    printf("%x - ", rdy_buf);
-
-
     //Mask with 7th bit, shift to end
     return (rdy_buf & ACC_MASK) >> 7;
 
@@ -395,6 +390,9 @@ bool is_cmd_flushed(bmi160 *dev){
     //If the value is higher that 0, cmd not flushed
     return (cmd_val == 0);
 }
+
+
+
 
 
 //Sweep through every I2C address to try and find the value

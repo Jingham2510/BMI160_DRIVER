@@ -103,8 +103,8 @@ bool is_acc_ready(bmi160 *dev);
 bool is_gyr_ready(bmi160 *dev);
 
 
-//Get the time of the sensor
-uint8_t get_timestamp(bmi160 *dev);
+//Get the time of the sensor i nraw byte value
+uint8_t get_timestamp_raw(bmi160 *dev, uint8_t *tstamp_buf);
 
 //Get the full XYZ gyro data
 bmi160_data get_gyr_data(bmi160 *dev);
